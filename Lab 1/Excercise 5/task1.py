@@ -6,33 +6,38 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
 
+from enum import Enum
+
 emma = nltk.corpus.gutenberg.raw('austen-emma.txt')
 sense = nltk.corpus.gutenberg.raw('austen-sense.txt')
 
 stopwords = set(stopwords.words('english'))
 
-def similarity(s1, s2):
+class SimilarityType(Enum):
+    JACCARD = 1
+    EUCLIDEAN = 2
+    MANHATTAN = 3
+
+
+def similarity(s1, s2, similarityType = SimilarityType.EUCLIDEAN):
     s1_tokens = word_tokenize(s1)
     s2_tokens = word_tokenize(s2)
 
     toStem = False
-    toLemmatize = True
+    toLemmatize = False
 
     s1_no_stopwords = []
     s2_no_stopwords = []
 
     if toStem:
         stemmer = PorterStemmer()
-        print("Stemmming")
         s1_no_stopwords = [stemmer.stem(token.lower()) for token in s1_tokens if not token.lower() in stopwords]
         s2_no_stopwords = [stemmer.stem(token.lower()) for token in s2_tokens if not token.lower() in stopwords]
     elif toLemmatize:
-        print("Lemmatising")
         lemmatizer = WordNetLemmatizer()
         s1_no_stopwords = [lemmatizer.lemmatize(token.lower()) for token in s1_tokens if not token.lower() in stopwords]
         s2_no_stopwords = [lemmatizer.lemmatize(token.lower()) for token in s2_tokens if not token.lower() in stopwords]
     else:
-        print("No lemmatising or stemming")
         s1_no_stopwords = [token.lower() for token in s1_tokens if not token.lower() in stopwords]
         s2_no_stopwords = [token.lower() for token in s2_tokens if not token.lower() in stopwords]
 
@@ -50,10 +55,13 @@ def similarity(s1, s2):
     s1_doc = [(s1_vocab[item] if item in s1_vocab.keys() else 0) for item in union]
     s2_doc = [(s2_vocab[item] if item in s2_vocab.keys() else 0) for item in union]
 
-    calculateEuclideanDistance(s1_doc, s2_doc)
-    calculateJaccardDistance(s1_doc, s2_doc)
-    calculateManhattanDistance(s1_doc, s2_doc)
 
+    if(similarityType == SimilarityType.EUCLIDEAN):
+        return calculateEuclideanDistance(s1_doc, s2_doc)
+    elif(similarityType == SimilarityType.JACCARD):
+        return calculateJaccardDistance(s1_doc, s2_doc)
+    else:
+        return calculateManhattanDistance(s1_doc, s2_doc)
 
 def compareLists(s1_val, s2_val):
     if  s1_val == s2_val:
@@ -63,7 +71,6 @@ def compareLists(s1_val, s2_val):
 
 
 def calculateJaccardDistance(s1_doc, s2_doc):
-
     binary_s1_doc = [(1 if item > 0 else 0) for item in s1_doc]
     binary_s2_doc = [(1 if item > 0 else 0) for item in s2_doc]
 
@@ -75,15 +82,15 @@ def calculateJaccardDistance(s1_doc, s2_doc):
         intersection += intersection_diff
         union += union_diff
 
-    jaccardSimilarity = intersection/(union)
-    print(f"Jaccard similarity: {jaccardSimilarity}")
+    jaccard_similarity = intersection/(union)
+    return jaccard_similarity
 
 def calculateManhattanDistance(s1_doc, s2_doc):
     manhattan_distance = 0
     for i in range(len(s1_doc)):
         manhattan_distance += abs(s1_doc[i] - s2_doc[i])
     
-    print(f"Manhattan distance: {manhattan_distance}")
+    return manhattan_distance
 
 def calculateEuclideanDistance(s1_doc, s2_doc):
     
@@ -91,14 +98,19 @@ def calculateEuclideanDistance(s1_doc, s2_doc):
     for i in range(len(s1_doc)):
         distance_sum += (s1_doc[i] - s2_doc[i])**2
     
-    euclideanSimilarity = 1/(1 + math.sqrt((distance_sum)))
-    print(f"Euclidean similarity: {euclideanSimilarity}")
+    euclidean_similarity = 1/(1 + math.sqrt((distance_sum)))
+    return euclidean_similarity
 
-similarity(emma, sense)
 
+# euclidean_similarity = similarity(emma, sense)
+# jaccard_similarity = similarity(emma, sense, SimilarityType.JACCARD)
+# manhattan_distance = similarity(emma, sense, SimilarityType.MANHATTAN)
+
+# print(f"Euclidean similarity: {euclidean_similarity}")
+# print(f"Jaccard similarity: {jaccard_similarity}")
+# print(f"Manhattan distance: {manhattan_distance}")
 
 # Stemming
-
 '''
 Stemming takes the common part of words so ends up with more words being the same than when no stemming happens
 It is quicker than lemmatising the words
